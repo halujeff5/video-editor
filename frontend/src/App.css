@@ -47,7 +47,7 @@
 .export-project-button {
   width: var(--left-control-width);
   position: absolute;
-  top: -52px;
+  top: -68px;
   left: 50%;
   align-self: center;
   transform: translateX(-50%);
@@ -109,6 +109,10 @@
   text-align: left;
 }
 
+.uploaded-files {
+  margin-top: 0;
+}
+
 .media-upload-button {
   width: var(--left-control-width);
   align-self: center;
@@ -159,10 +163,13 @@
 }
 
 .project-save-control {
-  align-self: center;
   width: 100%;
-  margin-top: auto;
-  position: relative;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  align-self: center;
+  margin-top: 0;
   display: grid;
   justify-items: center;
   gap: 6px;
@@ -1007,11 +1014,6 @@
     position: relative;
   }
 
-  .export-project-button {
-    position: static;
-    transform: none;
-  }
-
   .container::after {
     content: "";
     width: 1px;
@@ -1718,7 +1720,7 @@
   opacity: 0.45;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 520px) {
   .app-shell {
     display: flex;
     flex-direction: column;
@@ -1732,6 +1734,7 @@
   }
 
   .project-save-control {
+    position: relative;
     margin-top: 24px;
   }
 }

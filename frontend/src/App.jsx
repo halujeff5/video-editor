@@ -136,6 +136,7 @@ function App() {
   const [previewPanelHeight, setPreviewPanelHeight] = useState(0);
   const previewRef = useRef(null);
   const previewPanelRef = useRef(null);
+  const uploadedSectionRef = useRef(null);
   const musicInputRef = useRef(null);
   const continuePlaybackRef = useRef(false);
   const preserveTimelineOnPauseRef = useRef(false);
@@ -259,10 +260,15 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!previewPanelRef.current) return undefined;
-    const updateHeight = () => setPreviewPanelHeight(previewPanelRef.current.offsetHeight);
+    if (!previewPanelRef.current || !uploadedSectionRef.current) return undefined;
+    const updateHeight = () => {
+      const sectionTop = uploadedSectionRef.current.getBoundingClientRect().top;
+      const previewBottom = previewPanelRef.current.getBoundingClientRect().bottom;
+      setPreviewPanelHeight(Math.max(0, previewBottom - sectionTop));
+    };
     const observer = new ResizeObserver(updateHeight);
     observer.observe(previewPanelRef.current);
+    observer.observe(uploadedSectionRef.current);
     updateHeight();
     return () => observer.disconnect();
   }, []);
@@ -1735,7 +1741,7 @@ function App() {
           {projectSaveStatus === "error" && <span className="error">Save failed</span>}
         </div>
       </div>
-      <div className="uploaded-section">
+      <div className="uploaded-section" ref={uploadedSectionRef}>
         <div className="media-workspace">
           <section>
             <h2>Uploaded</h2>
