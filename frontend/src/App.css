@@ -46,7 +46,11 @@
 
 .export-project-button {
   width: var(--left-control-width);
+  position: absolute;
+  top: -52px;
+  left: 50%;
   align-self: center;
+  transform: translateX(-50%);
   border-color: #257a4b;
   background: #2f8f5b;
   color: #fff;
@@ -98,6 +102,7 @@
   height: var(--preview-panel-height, auto);
   margin-top: clamp(32px, 5vw, 48px);
   box-sizing: border-box;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1000,6 +1005,11 @@
 @media (min-width: 1101px) {
   .container {
     position: relative;
+  }
+
+  .export-project-button {
+    position: static;
+    transform: none;
   }
 
   .container::after {
