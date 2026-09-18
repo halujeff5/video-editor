@@ -1,8 +1,10 @@
 .app-shell {
+  --left-panel-width: 170px;
+  --left-control-width: 132px;
   width: 100%;
   min-height: 100svh;
   display: grid;
-  grid-template-columns: 170px minmax(0, 1126px);
+  grid-template-columns: var(--left-panel-width) minmax(0, 1126px);
   grid-template-rows: auto 1fr;
   column-gap: 12px;
   align-items: start;
@@ -43,9 +45,10 @@
 }
 
 .export-project-button {
+  width: var(--left-control-width);
   position: absolute;
   top: calc(50% + 8px);
-  left: 16px;
+  left: calc((var(--left-panel-width) - var(--left-control-width)) / 2);
   transform: translateY(-50%);
   border-color: #257a4b;
   background: #2f8f5b;
@@ -105,9 +108,12 @@
 }
 
 .media-upload-button {
+  width: var(--left-control-width);
   align-self: center;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   padding: 7px 10px;
   border: 1px solid #c96f18;
   border-radius: 4px;
@@ -161,6 +167,7 @@
 }
 
 .save-project-button {
+  width: var(--left-control-width);
   height: 42px;
   padding: 8px 11px;
   box-sizing: border-box;
@@ -1726,6 +1733,7 @@
 
   .export-project-button {
     top: auto;
+    left: 16px;
     bottom: 4px;
     transform: none;
   }
