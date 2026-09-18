@@ -43,6 +43,10 @@
 }
 
 .export-project-button {
+  position: absolute;
+  top: calc(50% + 8px);
+  left: 16px;
+  transform: translateY(-50%);
   border-color: #257a4b;
   background: #2f8f5b;
   color: #fff;
@@ -1717,6 +1721,12 @@
     bottom: 4px;
     flex-wrap: wrap;
     justify-content: flex-end;
+    transform: none;
+  }
+
+  .export-project-button {
+    top: auto;
+    bottom: 4px;
     transform: none;
   }
 

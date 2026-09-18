@@ -1657,16 +1657,16 @@ function App() {
   return (
     <div className="app-shell" onContextMenu={openAppMenu}>
       <header className="app-header">
+        <button
+          type="button"
+          className="export-project-button"
+          onClick={exportMp4}
+          disabled={exportStatus === "exporting" || (editingVideos.length === 0 && editingMusic.length === 0)}
+        >
+          {exportStatus === "exporting" ? "Exporting…" : "Export MP4"}
+        </button>
         <h1>Timeline Studio 🎬</h1>
         <div className="header-actions">
-          <button
-            type="button"
-            className="export-project-button"
-            onClick={exportMp4}
-            disabled={exportStatus === "exporting" || (editingVideos.length === 0 && editingMusic.length === 0)}
-          >
-            {exportStatus === "exporting" ? "Exporting…" : "Export MP4"}
-          </button>
           <a
             className="project-patreon-link"
             href="https://patreon.com/JeffreyNg?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
