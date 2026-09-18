@@ -133,7 +133,9 @@ function App() {
   const [soundstripeTracks, setSoundstripeTracks] = useState([]);
   const [showMusicPicker, setShowMusicPicker] = useState(false);
   const [pendingPhotoDrop, setPendingPhotoDrop] = useState(null);
+  const [previewPanelHeight, setPreviewPanelHeight] = useState(0);
   const previewRef = useRef(null);
+  const previewPanelRef = useRef(null);
   const musicInputRef = useRef(null);
   const continuePlaybackRef = useRef(false);
   const preserveTimelineOnPauseRef = useRef(false);
@@ -254,6 +256,15 @@ function App() {
       window.removeEventListener("dragend", clearTimelineDragState);
       window.removeEventListener("drop", clearTimelineDragState);
     };
+  }, []);
+
+  useEffect(() => {
+    if (!previewPanelRef.current) return undefined;
+    const updateHeight = () => setPreviewPanelHeight(previewPanelRef.current.offsetHeight);
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(previewPanelRef.current);
+    updateHeight();
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -1655,16 +1666,12 @@ function App() {
   }
 
   return (
-    <div className="app-shell" onContextMenu={openAppMenu}>
+    <div
+      className="app-shell"
+      style={{ "--preview-panel-height": `${previewPanelHeight}px` }}
+      onContextMenu={openAppMenu}
+    >
       <header className="app-header">
-        <button
-          type="button"
-          className="export-project-button"
-          onClick={exportMp4}
-          disabled={exportStatus === "exporting" || (editingVideos.length === 0 && editingMusic.length === 0)}
-        >
-          {exportStatus === "exporting" ? "Exporting…" : "Export MP4"}
-        </button>
         <h1>Timeline Studio 🎬</h1>
         <div className="header-actions">
           <a
@@ -1685,6 +1692,14 @@ function App() {
       </header>
 
       <div className="container">
+        <button
+          type="button"
+          className="export-project-button"
+          onClick={exportMp4}
+          disabled={exportStatus === "exporting" || (editingVideos.length === 0 && editingMusic.length === 0)}
+        >
+          {exportStatus === "exporting" ? "Exporting…" : "Export MP4"}
+        </button>
         <h2 className="uploaded-files">Media</h2>
         <label className="media-upload-button">
           Choose files
@@ -1769,7 +1784,7 @@ function App() {
             </div>
           </section>
 
-          <section className="selected-video">
+          <section className="selected-video" ref={previewPanelRef}>
             <div className="preview-heading">
               <h2>Preview</h2>
               <div className="music-control">

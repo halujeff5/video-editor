@@ -46,10 +46,7 @@
 
 .export-project-button {
   width: var(--left-control-width);
-  position: absolute;
-  top: calc(50% + 8px);
-  left: calc((var(--left-panel-width) - var(--left-control-width)) / 2);
-  transform: translateY(-50%);
+  align-self: center;
   border-color: #257a4b;
   background: #2f8f5b;
   color: #fff;
@@ -98,9 +95,9 @@
 .container {
   grid-column: 1;
   grid-row: 2;
-  margin-top: 40px;
-  min-height: calc(100svh - 96px);
-  align-self: stretch;
+  height: var(--preview-panel-height, auto);
+  margin-top: clamp(32px, 5vw, 48px);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -160,7 +157,7 @@
   align-self: center;
   width: 100%;
   margin-top: auto;
-  padding-bottom: 570px;
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 6px;
@@ -207,6 +204,8 @@
 }
 
 .project-save-control span {
+  position: absolute;
+  top: calc(100% + 6px);
   color: var(--text);
   font-size: 0.65rem;
 }
@@ -1714,6 +1713,17 @@
     display: flex;
     flex-direction: column;
   }
+
+  .container {
+    width: 100%;
+    height: auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .project-save-control {
+    margin-top: 24px;
+  }
 }
 
 @media (max-width: 820px) {
@@ -1728,13 +1738,6 @@
     bottom: 4px;
     flex-wrap: wrap;
     justify-content: flex-end;
-    transform: none;
-  }
-
-  .export-project-button {
-    top: auto;
-    left: 16px;
-    bottom: 4px;
     transform: none;
   }
 
