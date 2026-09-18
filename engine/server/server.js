@@ -1,10 +1,11 @@
 import bcrypt from "bcrypt";
 import express from "express";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pool, transaction } from "./db.js";
+import { renderProject } from "./exporter.js";
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -188,6 +189,39 @@ app.get("/api/soundstripe/audio/:songId", async (request, response) => {
     return response.redirect(audioFile.attributes.versions.mp3);
   } catch (error) {
     return response.status(502).json({ error: error.message });
+  }
+});
+
+async function loadSoundstripeAudio(track) {
+  const songId = track.id || String(track.url || "").split("/").pop();
+  const song = await soundstripeRequest(`/songs/${encodeURIComponent(songId)}`);
+  const audioFile = (song.included || []).find((item) => (
+    item.type === "audio_files" && item.attributes?.versions?.mp3
+  ));
+  if (!audioFile) throw new Error(`Track preview unavailable for ${track.name || "music"}`);
+  const response = await fetch(audioFile.attributes.versions.mp3);
+  if (!response.ok) throw new Error(`Unable to download ${track.name || "music"}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+app.post("/api/project/export", requireUser, async (request, response) => {
+  let exportResult;
+  try {
+    exportResult = await renderProject({
+      document: request.body,
+      userId: request.user.id,
+      assetDirectory,
+      resolveRemoteAudio: loadSoundstripeAudio,
+    });
+    response.download(exportResult.outputPath, "timeline-studio.mp4", async (error) => {
+      await rm(exportResult.workDirectory, { recursive: true, force: true });
+      if (error && !response.headersSent) response.status(500).json({ error: error.message });
+    });
+  } catch (error) {
+    if (exportResult?.workDirectory) {
+      await rm(exportResult.workDirectory, { recursive: true, force: true });
+    }
+    response.status(400).json({ error: error.message });
   }
 });
 

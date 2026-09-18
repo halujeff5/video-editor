@@ -126,6 +126,7 @@ function App() {
   const [musicLoading, setMusicLoading] = useState(false);
   const [musicError, setMusicError] = useState("");
   const [projectSaveStatus, setProjectSaveStatus] = useState("idle");
+  const [exportStatus, setExportStatus] = useState("idle");
   const [savedProjects, setSavedProjects] = useState([]);
   const [showProjectLoader, setShowProjectLoader] = useState(false);
   const [loadingProjectId, setLoadingProjectId] = useState(null);
@@ -1440,6 +1441,7 @@ function App() {
     setSpliceError("");
     setMusicError("");
     setProjectSaveStatus("idle");
+    setExportStatus("idle");
     setCanUndo(false);
     setClipMenu(null);
     setTransitionMenu(null);
@@ -1499,19 +1501,20 @@ function App() {
         duration: video.duration,
         volume: video.volume,
       }));
+      const projectDocument = {
+        videos: persistedVideos,
+        editingVideos: persistedEditingVideos,
+        editingMusic,
+        textOverlays,
+        videoTransitions,
+        activeClipId,
+        activeMusicClipId,
+        universalPlaybackTime,
+      };
       const response = await fetch("/api/project/save", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          videos: persistedVideos,
-          editingVideos: persistedEditingVideos,
-          editingMusic,
-          textOverlays,
-          videoTransitions,
-          activeClipId,
-          activeMusicClipId,
-          universalPlaybackTime,
-        }),
+        body: JSON.stringify(projectDocument),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Unable to save project");
@@ -1525,10 +1528,42 @@ function App() {
           : current
       ));
       setProjectSaveStatus("saved");
+      return projectDocument;
     } catch {
       setProjectSaveStatus("error");
+      return null;
     } finally {
       savingProjectRef.current = false;
+    }
+  }
+
+  async function exportMp4() {
+    if (exportStatus === "exporting") return;
+    setExportStatus("exporting");
+    try {
+      const projectDocument = await saveProject();
+      if (!projectDocument) throw new Error("Save failed");
+      const response = await fetch("/api/project/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(projectDocument),
+      });
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.error || "Unable to export MP4");
+      }
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = "timeline-studio.mp4";
+      anchor.click();
+      URL.revokeObjectURL(downloadUrl);
+      setExportStatus("done");
+    } catch (error) {
+      setExportStatus("error");
+      setSpliceError(error.message);
+      setErrorFlashKey((key) => key + 1);
     }
   }
 
@@ -1624,6 +1659,14 @@ function App() {
       <header className="app-header">
         <h1>Timeline Studio 🎬</h1>
         <div className="header-actions">
+          <button
+            type="button"
+            className="export-project-button"
+            onClick={exportMp4}
+            disabled={exportStatus === "exporting" || (editingVideos.length === 0 && editingMusic.length === 0)}
+          >
+            {exportStatus === "exporting" ? "Exporting…" : "Export MP4"}
+          </button>
           <a
             className="project-patreon-link"
             href="https://patreon.com/JeffreyNg?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
