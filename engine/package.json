@@ -1,0 +1,16 @@
+{
+  "name": "timeline-studio-backend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch-path=server server/server.js",
+    "start": "node --env-file-if-exists=.env server/server.js",
+    "migrate": "node --env-file-if-exists=.env server/migrate.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.3"
+  }
+}
