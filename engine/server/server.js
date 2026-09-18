@@ -10,7 +10,10 @@ const app = express();
 const port = Number(process.env.PORT || 3001);
 const sessionDays = Number(process.env.SESSION_DAYS || 7);
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const assetDirectory = path.join(directory, "../data/assets");
+const assetDirectory = process.env.ASSET_DIRECTORY
+  ? path.resolve(process.env.ASSET_DIRECTORY)
+  : path.join(directory, "../data/assets");
+const frontendDirectory = path.join(directory, "../../frontend/dist");
 await mkdir(assetDirectory, { recursive: true });
 
 app.use(express.json({ limit: "12mb" }));
@@ -27,13 +30,15 @@ function tokenHash(token) {
 }
 
 function sessionCookie(token, maxAge) {
-  return [
+  const parts = [
     `timeline_session=${encodeURIComponent(token)}`,
     "HttpOnly",
     "SameSite=Lax",
     "Path=/",
     `Max-Age=${maxAge}`,
-  ].join("; ");
+  ];
+  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  return parts.join("; ");
 }
 
 async function createSession(client, userId) {
@@ -117,6 +122,73 @@ app.post("/api/auth/login", async (request, response) => {
 
 app.get("/api/auth/session", requireUser, (request, response) => {
   response.json({ user: request.user });
+});
+
+app.get("/api/health", (request, response) => {
+  response.json({ status: "ok" });
+});
+
+async function soundstripeRequest(resource) {
+  if (!process.env.SOUNDSTRIPE_API_KEY) throw new Error("Soundstripe is not configured");
+  const response = await fetch(`https://api.soundstripe.com/v1${resource}`, {
+    headers: {
+      Authorization: `Token ${process.env.SOUNDSTRIPE_API_KEY}`,
+      Accept: "application/vnd.api+json",
+    },
+  });
+  if (!response.ok) throw new Error(`Soundstripe request failed (${response.status})`);
+  return response.json();
+}
+
+function normalizeSoundstripeSongs(payload) {
+  const included = payload.included || [];
+  const resources = new Map(included.map((item) => [`${item.type}:${item.id}`, item]));
+  return included.filter((item) => item.type === "songs").map((song) => {
+    const artists = (song.relationships?.artists?.data || [])
+      .map(({ id }) => resources.get(`artists:${id}`)?.attributes?.name)
+      .filter(Boolean)
+      .join(", ");
+    const audioFile = (song.relationships?.audio_files?.data || [])
+      .map(({ id }) => resources.get(`audio_files:${id}`))
+      .find((item) => item?.attributes?.versions?.mp3);
+    if (!audioFile) return null;
+    return {
+      id: song.id,
+      name: song.attributes.title,
+      artists: artists || "Soundstripe artist",
+      duration: audioFile.attributes.duration || 0,
+      source: "soundstripe",
+      url: `/api/soundstripe/audio/${song.id}`,
+      licenseProvider: "Soundstripe",
+    };
+  }).filter(Boolean);
+}
+
+app.get("/api/soundstripe/tracks", async (request, response) => {
+  try {
+    const playlists = await soundstripeRequest("/playlists?page[size]=4");
+    const results = await Promise.all((playlists.data || []).map(({ id }) => (
+      soundstripeRequest(`/playlists/${id}?include=songs,songs.artists,songs.audio_files&page[size]=40`)
+    )));
+    const tracks = new Map();
+    results.flatMap(normalizeSoundstripeSongs).forEach((track) => tracks.set(track.id, track));
+    response.json({ tracks: [...tracks.values()].slice(0, 40) });
+  } catch (error) {
+    response.status(502).json({ error: error.message });
+  }
+});
+
+app.get("/api/soundstripe/audio/:songId", async (request, response) => {
+  try {
+    const song = await soundstripeRequest(`/songs/${encodeURIComponent(request.params.songId)}`);
+    const audioFile = (song.included || []).find((item) => (
+      item.type === "audio_files" && item.attributes?.versions?.mp3
+    ));
+    if (!audioFile) return response.status(404).json({ error: "Track preview unavailable" });
+    return response.redirect(audioFile.attributes.versions.mp3);
+  } catch (error) {
+    return response.status(502).json({ error: error.message });
+  }
 });
 
 app.post("/api/auth/logout", requireUser, async (request, response) => {
@@ -264,13 +336,21 @@ async function serveAsset(request, response) {
 app.get("/api/video-assets/:assetId", requireUser, serveAsset);
 app.get("/api/audio-assets/:assetId", requireUser, serveAsset);
 
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(frontendDirectory));
+  app.get("/{*path}", (request, response) => {
+    response.sendFile(path.join(frontendDirectory, "index.html"));
+  });
+}
+
 app.use((error, request, response, next) => {
   if (response.headersSent) return next(error);
   return response.status(500).json({ error: error.message });
 });
 
-const server = app.listen(port, "127.0.0.1", () => {
-  console.log(`Timeline Studio backend listening on http://127.0.0.1:${port}`);
+const host = process.env.HOST || "0.0.0.0";
+const server = app.listen(port, host, () => {
+  console.log(`Timeline Studio backend listening on ${host}:${port}`);
 });
 
 async function shutdown() {
